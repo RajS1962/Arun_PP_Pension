@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <!-- Firebase: Add these scripts FIRST (before any of your own scripts) -->
+  <!-- Firebase scripts -->
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
   <script>
-    // Your web app's Firebase configuration
+    // Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyDt90LIpScfZDdWD8NcUAY0pfGuM1x03tQ",
       authDomain: "arun-pp-pension.firebaseapp.com",
@@ -16,12 +16,10 @@
       appId: "1:1079148979168:web:7fa09423f6a835fee9c185",
       measurementId: "G-43ZJK7WGGG"
     };
-    // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
-    if ('measurementId' in firebaseConfig) {
+    if ("measurementId" in firebaseConfig) {
       firebase.analytics();
     }
-    // Use firebase.firestore() for database commands later
   </script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
@@ -193,11 +191,32 @@
       }
     };
 
-    // Load data from localStorage or use defaults
+    // Load from localStorage or use defaults first
     let pensionData = JSON.parse(localStorage.getItem('pensionDataV2') || JSON.stringify(DEFAULT_DATA));
     let activeTab = 'Dashboard';
     let chartInstances = {};
 
+    // Firestore ref
+    const db = firebase.firestore();
+
+    // Auto-save to Firestore on changes
+    function autosaveToFirestore() {
+      db.collection("pensionApp").doc("mainData").set({
+        pensionData: pensionData
+      });
+    }
+
+    // Auto-load from Firestore on page load
+    function loadFromFirestore() {
+      db.collection("pensionApp").doc("mainData").get().then(doc => {
+        if (doc.exists) {
+          pensionData = doc.data().pensionData;
+          render();
+        }
+      });
+    }
+
+    // Get all unique years from all pensions, sorted
     function getAllYears() {
       const yearSet = new Set();
       Object.values(pensionData).forEach(pension => {
@@ -234,7 +253,6 @@
       if (chartInstances[canvasId]) {
         chartInstances[canvasId].destroy();
       }
-
       const ctx = document.getElementById(canvasId).getContext('2d');
       chartInstances[canvasId] = new Chart(ctx, {
         type: 'line',
@@ -317,7 +335,6 @@
           </tbody>
         </table>
       `;
-
       setTimeout(() => {
         drawLineChart('dashboardChart', years, years.map(y => totals[y] || 0), 'Total Value (£)');
       }, 50);
@@ -365,6 +382,7 @@
           }
         });
         localStorage.setItem('pensionDataV2', JSON.stringify(pensionData));
+        autosaveToFirestore();
         render();
       });
 
@@ -373,10 +391,15 @@
         const newYear = maxYear + 1;
         pension.values[newYear] = 0;
         localStorage.setItem('pensionDataV2', JSON.stringify(pensionData));
+        autosaveToFirestore();
         render();
       });
     }
 
+    // Auto-load from Firestore on page load
+    loadFromFirestore();
+
+    // Initial render (will re-render after Firestore loads)
     render();
   </script>
 </body>
