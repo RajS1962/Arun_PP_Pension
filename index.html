@@ -31,6 +31,7 @@
       box-shadow: 0 2px 8px rgba(80,56,150,0.09);
       font-size: 1.1em;
       font-weight: 700;
+      flex-wrap: wrap;
     }
     nav button {
       background: none;
@@ -54,44 +55,99 @@
       border-radius: 20px;
       box-shadow: 0 4px 24px #2a144c40;
     }
-    .stats { display: flex; gap: 2em; flex-wrap: wrap; margin-bottom: 2em; }
+    .stats { 
+      display: flex; 
+      gap: 2em; 
+      flex-wrap: wrap; 
+      margin-bottom: 2em; 
+    }
     .statbox { 
       background: linear-gradient(120deg, #271953 60%, #454566 100%);
       border-radius: 11px;
       padding: 1.2em 2em;
       box-shadow: 0 2px 8px #46208322;
       color: #f3d8ff;
+      flex: 1;
+      min-width: 200px;
     }
-    .form-row { display: flex; gap: 1em; align-items: center; margin-bottom: 0.5em; }
-    label { min-width: 70px; }
+    .form-row { 
+      display: flex; 
+      gap: 1em; 
+      align-items: center; 
+      margin-bottom: 0.5em; 
+    }
+    label { 
+      min-width: 70px; 
+      font-weight: 500;
+    }
     input[type='number'] {
-      width: 85px;
-      padding: 0.3em;
+      width: 100px;
+      padding: 0.5em;
       border-radius: 5px;
       border: 1px solid #7d48ce;
       background: #252145;
       color: #ac8fff;
+      font-size: 1em;
     }
     .savebtn {
       background: #6c3cc7;
       color: #fff;
       border: none;
-      padding: 0.6em 1em;
+      padding: 0.7em 1.2em;
       border-radius: 7px;
       cursor: pointer;
       font-weight: 700;
       transition: background 0.17s;
       margin-top: 0.8em;
+      margin-right: 0.5em;
     }
-    .savebtn:hover { background: #a679f7; color: #271953;}
+    .savebtn:hover { 
+      background: #a679f7; 
+      color: #271953;
+    }
+    table { 
+      width: 100%; 
+      background: #22134546; 
+      margin-top: 1.5em; 
+      border-radius: 8px; 
+      border-collapse: collapse;
+      overflow: hidden;
+    }
+    th, td { 
+      padding: 0.8em 0.5em; 
+      text-align: center; 
+      border-bottom: 1px solid #27195333;
+    }
+    th {
+      background: #271953;
+      font-weight: 700;
+      color: #21d4fd;
+    }
+    td {
+      color: #e7e4f5;
+    }
+    tr:last-child td {
+      border-bottom: none;
+    }
     @media (max-width:600px) {
-      main { padding: 1em; }
-      .stats { flex-direction: column; gap: 1em; }
-      table { font-size: 0.97em; }
+      main { 
+        padding: 1em; 
+        margin: 1em;
+      }
+      .stats { 
+        flex-direction: column; 
+        gap: 1em; 
+      }
+      table { 
+        font-size: 0.85em; 
+      }
+      th, td {
+        padding: 0.5em 0.3em;
+      }
+      input[type='number'] {
+        width: 80px;
+      }
     }
-    table { width: 100%; background: #22134546; margin-top: 1em; border-radius: 8px; border-collapse: collapse;}
-    th, td { padding: 0.5em 0.3em; text-align: center; }
-    tr { border-bottom: 1px solid #27195333; }
   </style>
 </head>
 <body>
@@ -99,160 +155,237 @@
   <nav id="tabs"></nav>
   <main id="content"></main>
   <script>
-    // --- State and Utility ---
+    // Default pension data structure
     const DEFAULT_DATA = {
-      Nest: { provider: 'Nest', values: {2018: 1000,2019:1300,2020:1400,2021:1500,2022:1600,2023:1800,2024:2000} },
-      'Royal London': { provider: 'Royal London', values: {2018: 0,2019: 0,2020: 0,2021:1200,2022:2600,2023:3300,2024:4500} },
-      Baringa: { provider: 'Baringa', values: {2018:0,2019:0,2020:0,2021:0,2022:0,2023:0,2024:2500} }
+      Nest: { 
+        provider: 'Nest', 
+        values: {2018: 1000, 2019: 1300, 2020: 1400, 2021: 1500, 2022: 1600, 2023: 1800, 2024: 2000} 
+      },
+      'Royal London': { 
+        provider: 'Royal London', 
+        values: {2018: 0, 2019: 0, 2020: 0, 2021: 1200, 2022: 2600, 2023: 3300, 2024: 4500} 
+      },
+      Baringa: { 
+        provider: 'Baringa', 
+        values: {2018: 0, 2019: 0, 2020: 0, 2021: 0, 2022: 0, 2023: 0, 2024: 2500} 
+      }
     };
 
-    // Make sure data structure persists for additional years/pensions
-    function fixDataStructure(data) {
-      Object.keys(data).forEach(k => {
-        if (!data[k].values) data[k].values = {};
-      });
-      return data;
-    }
-
-    let pensionData = fixDataStructure(JSON.parse(localStorage.getItem('pensionDataV1') || JSON.stringify(DEFAULT_DATA)));
+    // Load data from localStorage or use defaults
+    let pensionData = JSON.parse(localStorage.getItem('pensionDataV2') || JSON.stringify(DEFAULT_DATA));
     let activeTab = 'Dashboard';
+    let chartInstances = {};
 
-    // Years getter: update whenever new year is added
-    function getYears() {
-      let allYears = [];
-      Object.values(pensionData).forEach(p =>
-        Object.keys(p.values).forEach(y=>{
-          if (!allYears.includes(Number(y))) allYears.push(Number(y));
-        })
-      );
-      allYears.sort((a,b)=>a-b);
-      return allYears;
+    // Get all unique years from all pensions, sorted
+    function getAllYears() {
+      const yearSet = new Set();
+      Object.values(pensionData).forEach(pension => {
+        Object.keys(pension.values).forEach(year => {
+          yearSet.add(parseInt(year));
+        });
+      });
+      return Array.from(yearSet).sort((a, b) => a - b);
     }
 
-    // --- UI Functions ---
+    // Calculate totals for each year across all pensions
+    function calculateTotals(years) {
+      const totals = {};
+      years.forEach(year => {
+        totals[year] = Object.values(pensionData).reduce((sum, pension) => {
+          return sum + (pension.values[year] || 0);
+        }, 0);
+      });
+      return totals;
+    }
+
+    // Render navigation tabs
     function renderTabs() {
-      const tablist = ['Dashboard', ...Object.keys(pensionData)];
-      document.getElementById('tabs').innerHTML = tablist.map(
-        t => `<button${activeTab===t?' class="active"':''} onclick="switchTab('${t}')">${t}</button>`
+      const tabs = ['Dashboard', ...Object.keys(pensionData)];
+      document.getElementById('tabs').innerHTML = tabs.map(tab =>
+        `<button class="${activeTab === tab ? 'active' : ''}" onclick="switchTab('${tab}')">${tab}</button>`
       ).join('');
     }
 
-    window.switchTab = tab => {
+    // Switch active tab
+    window.switchTab = function(tab) {
       activeTab = tab;
       render();
     };
 
-    function render() {
-      renderTabs();
-      const content = document.getElementById('content');
-      const years = getYears();
-
-      if (activeTab === 'Dashboard') {
-        // Combined totals table/chart
-        let totals = {};
-        years.forEach(y=>{
-          totals[y] = Object.values(pensionData).reduce((sum,p)=>sum+(p.values[y]||0),0);
-        });
-
-        const currTotal = totals[years[years.length-1]] || 0;
-        const prevTotal = totals[years[years.length-2]] || 0;
-
-        content.innerHTML = `
-          <div class="stats">
-            <div class="statbox">
-              <div><b>Total value (latest):</b></div>
-              <div style="font-size:1.7em;">£${currTotal.toLocaleString()}</div>
-            </div>
-            <div class="statbox">
-              <div><b>Year-on-year growth:</b></div>
-              <div style="font-size:1.3em;">${currTotal>prevTotal?'+':'-'}£${(currTotal-prevTotal).toLocaleString()}</div>
-            </div>
-          </div>
-          <canvas id="sumChart" height="120"></canvas>
-        `;
-        setTimeout(()=>drawLineChart('sumChart', years, years.map(y=>totals[y]||0), "Combined Total (£)"),50);
-
-        // Show table of combined values
-        content.innerHTML += `
-          <table>
-            <tr>${years.map(y=>`<th>${y}</th>`).join('')}</tr>
-            <tr>${years.map(y=>`<td>£${(totals[y]||0).toLocaleString()}</td>`).join('')}</tr>
-          </table>
-        `;
-      } else {
-        const pd = pensionData[activeTab];
-        content.innerHTML = `
-          <div style="margin-bottom:1.5em;">
-            <b>Edit annual values for <span style="color:#21d4fd">${activeTab}</span>:</b>
-            <form id="editForm">
-              ${years.map(y =>
-                `<div class="form-row">
-                  <label>${y}</label>
-                  <input type="number" min="0" name="val-${y}" value="${pd.values[y]||''}" />
-                </div>`
-              ).join('')}
-              <button class="savebtn" type="submit">Save</button>
-              <button type="button" class="savebtn" id="addYearBtn">Add Year</button>
-            </form>
-          </div>
-          <canvas id="pensionChart" height="120"></canvas>
-        `;
-        setTimeout(()=>drawLineChart('pensionChart', years, years.map(y=>pd.values[y]||0), `${activeTab} Value (£)`),50);
-
-        // Show values table below chart
-        content.innerHTML += `
-          <table>
-            <tr>${years.map(y=>`<th>${y}</th>`).join('')}</tr>
-            <tr>${years.map(y=>`<td>£${(pd.values[y]||0).toLocaleString()}</td>`).join('')}</tr>
-          </table>`;
-
-        // Form handlers
-        document.getElementById('editForm').onsubmit = e => {
-          e.preventDefault();
-          years.forEach(y=>{
-            const v = parseFloat(e.target[`val-${y}`].value) || 0;
-            pd.values[y] = v;
-          });
-          pensionData[activeTab] = pd;
-          localStorage.setItem('pensionDataV1', JSON.stringify(pensionData));
-          render();
-        };
-
-        document.getElementById('addYearBtn').onclick = () => {
-          let maxYear = years.length ? years[years.length-1] : (new Date().getFullYear());
-          let nextYear = maxYear + 1;
-          pd.values[nextYear] = 0;
-          pensionData[activeTab] = pd;
-          localStorage.setItem('pensionDataV1', JSON.stringify(pensionData));
-          render();
-        };
+    // Draw line chart
+    function drawLineChart(canvasId, labels, data, label, color = '#21d4fd') {
+      // Destroy existing chart if it exists
+      if (chartInstances[canvasId]) {
+        chartInstances[canvasId].destroy();
       }
-    }
 
-    function drawLineChart(elemId, labels, data, label) {
-      const ctx = document.getElementById(elemId).getContext('2d');
-      if (window.chartInstance && window.chartInstance[elemId]) {
-        window.chartInstance[elemId].destroy();
-      }
-      window.chartInstance = window.chartInstance || {};
-      window.chartInstance[elemId] = new Chart(ctx, {
-        type: "line",
+      const ctx = document.getElementById(canvasId).getContext('2d');
+      chartInstances[canvasId] = new Chart(ctx, {
+        type: 'line',
         data: {
           labels: labels,
           datasets: [{
-            label, data, fill: true, tension: 0.33,
-            borderColor: "#21d4fd", backgroundColor: "rgba(33,212,253,0.18)",
-            pointRadius: 4, pointBackgroundColor: "#fad0c4"
+            label: label,
+            data: data,
+            fill: true,
+            tension: 0.33,
+            borderColor: color,
+            backgroundColor: `${color}30`,
+            pointRadius: 5,
+            pointBackgroundColor: '#fad0c4',
+            pointBorderColor: color,
+            pointBorderWidth: 2
           }]
         },
         options: {
-          plugins: {legend:{display:false}},
-          scales: {y:{beginAtZero:true}}
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: {
+            legend: {
+              display: false
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                color: '#ac8fff',
+                callback: function(value) {
+                  return '£' + value.toLocaleString();
+                }
+              },
+              grid: {
+                color: '#27195333'
+              }
+            },
+            x: {
+              ticks: {
+                color: '#ac8fff'
+              },
+              grid: {
+                color: '#27195333'
+              }
+            }
+          }
         }
       });
     }
 
-    // --- App Startup ---
+    // Main render function
+    function render() {
+      renderTabs();
+      const content = document.getElementById('content');
+      const years = getAllYears();
+
+      if (activeTab === 'Dashboard') {
+        renderDashboard(content, years);
+      } else {
+        renderPensionTab(content, years);
+      }
+    }
+
+    // Render dashboard view
+    function renderDashboard(content, years) {
+      const totals = calculateTotals(years);
+      const latestYear = years[years.length - 1];
+      const previousYear = years[years.length - 2];
+      const currentTotal = totals[latestYear] || 0;
+      const previousTotal = totals[previousYear] || 0;
+      const growth = currentTotal - previousTotal;
+
+      content.innerHTML = `
+        <div class="stats">
+          <div class="statbox">
+            <div><b>Total Pension Value (${latestYear}):</b></div>
+            <div style="font-size:1.8em;margin-top:0.3em;">£${currentTotal.toLocaleString()}</div>
+          </div>
+          <div class="statbox">
+            <div><b>Year-on-Year Growth:</b></div>
+            <div style="font-size:1.4em;margin-top:0.3em;color:${growth >= 0 ? '#6ee7b7' : '#fca5a5'}">
+              ${growth >= 0 ? '+' : ''}£${growth.toLocaleString()}
+            </div>
+          </div>
+        </div>
+        <h3 style="color:#21d4fd;margin-bottom:0.5em;">Combined Pension Value Over Time</h3>
+        <canvas id="dashboardChart" style="max-height:300px;"></canvas>
+        <h3 style="color:#21d4fd;margin-top:2em;margin-bottom:0.5em;">Yearly Values</h3>
+        <table>
+          <thead>
+            <tr>${years.map(y => `<th>${y}</th>`).join('')}</tr>
+          </thead>
+          <tbody>
+            <tr>${years.map(y => `<td>£${(totals[y] || 0).toLocaleString()}</td>`).join('')}</tr>
+          </tbody>
+        </table>
+      `;
+
+      setTimeout(() => {
+        drawLineChart('dashboardChart', years, years.map(y => totals[y] || 0), 'Total Value (£)');
+      }, 50);
+    }
+
+    // Render individual pension tab
+    function renderPensionTab(content, years) {
+      const pension = pensionData[activeTab];
+      
+      content.innerHTML = `
+        <h3 style="color:#21d4fd;margin-bottom:1em;">Edit Values for ${activeTab}</h3>
+        <form id="editForm">
+          ${years.map(year => `
+            <div class="form-row">
+              <label>${year}:</label>
+              <input type="number" min="0" step="100" name="val-${year}" value="${pension.values[year] || 0}" />
+            </div>
+          `).join('')}
+          <div style="margin-top:1em;">
+            <button type="submit" class="savebtn">Save Changes</button>
+            <button type="button" class="savebtn" id="addYearBtn">Add New Year</button>
+          </div>
+        </form>
+        
+        <h3 style="color:#21d4fd;margin-top:2em;margin-bottom:0.5em;">${activeTab} Value Over Time</h3>
+        <canvas id="pensionChart" style="max-height:300px;"></canvas>
+        
+        <h3 style="color:#21d4fd;margin-top:2em;margin-bottom:0.5em;">Yearly Values</h3>
+        <table>
+          <thead>
+            <tr>${years.map(y => `<th>${y}</th>`).join('')}</tr>
+          </thead>
+          <tbody>
+            <tr>${years.map(y => `<td>£${(pension.values[y] || 0).toLocaleString()}</td>`).join('')}</tr>
+          </tbody>
+        </table>
+      `;
+
+      // Draw chart
+      setTimeout(() => {
+        drawLineChart('pensionChart', years, years.map(y => pension.values[y] || 0), `${activeTab} Value (£)`, '#21d4fd');
+      }, 50);
+
+      // Handle form submission
+      document.getElementById('editForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        years.forEach(year => {
+          const input = e.target[`val-${year}`];
+          if (input) {
+            pension.values[year] = parseFloat(input.value) || 0;
+          }
+        });
+        localStorage.setItem('pensionDataV2', JSON.stringify(pensionData));
+        render();
+      });
+
+      // Handle add year button
+      document.getElementById('addYearBtn').addEventListener('click', function() {
+        const maxYear = Math.max(...years);
+        const newYear = maxYear + 1;
+        pension.values[newYear] = 0;
+        localStorage.setItem('pensionDataV2', JSON.stringify(pensionData));
+        render();
+      });
+    }
+
+    // Initialize app
     render();
   </script>
 </body>
