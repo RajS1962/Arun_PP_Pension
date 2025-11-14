@@ -848,6 +848,11 @@
                 <i class="fas fa-calculator"></i> Calculate Projection
             </button>
             
+            <!-- NEW: Chart for Predictor -->
+            <div class="chart-container">
+                <canvas id="predictorChart"></canvas>
+            </div>
+            
             <div class="results">
                 <div class="result-card">
                     <h4>Total Return</h4>
@@ -908,7 +913,8 @@
             totalChart: null,
             capGeminiChart: null,
             royalLondonChart: null,
-            baringaChart: null
+            baringaChart: null,
+            predictorChart: null  // NEW: Added predictor chart
         };
 
         // Format currency with 2 decimal places
@@ -1235,6 +1241,11 @@
             const breakdown = [];
             let totalContributions = 0;
             
+            // Arrays for chart data
+            const years = [];
+            const cumulativeContributions = [];
+            const endValues = [];
+            
             // Calculate year by year
             for (let year = 1; year <= termYears; year++) {
                 const startValue = currentValue;
@@ -1255,6 +1266,11 @@
                     growth: growth,
                     endValue: currentValue
                 });
+                
+                // Store data for chart
+                years.push(`Year ${year}`);
+                cumulativeContributions.push(totalContributions);
+                endValues.push(currentValue);
             }
             
             // Update the results
@@ -1267,6 +1283,123 @@
             
             // Update the breakdown table
             updateBreakdownTable(breakdown);
+            
+            // Update the predictor chart
+            updatePredictorChart(years, cumulativeContributions, endValues);
+        }
+
+        // Update the predictor chart with two lines
+        function updatePredictorChart(years, cumulativeContributions, endValues) {
+            const ctx = document.getElementById('predictorChart').getContext('2d');
+            
+            // Destroy existing chart if it exists
+            if (chartInstances.predictorChart) {
+                chartInstances.predictorChart.destroy();
+            }
+            
+            chartInstances.predictorChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: years,
+                    datasets: [
+                        {
+                            label: 'Cumulative Contributions',
+                            data: cumulativeContributions,
+                            borderColor: '#00ff00',
+                            backgroundColor: 'rgba(0, 255, 0, 0.1)',
+                            borderWidth: 3,
+                            fill: false,
+                            tension: 0.4,
+                            pointBackgroundColor: '#00ff00',
+                            pointBorderColor: '#000000',
+                            pointBorderWidth: 2,
+                            pointRadius: 4,
+                            pointHoverRadius: 6
+                        },
+                        {
+                            label: 'End Value',
+                            data: endValues,
+                            borderColor: '#ffff00',
+                            backgroundColor: 'rgba(255, 255, 0, 0.1)',
+                            borderWidth: 3,
+                            fill: false,
+                            tension: 0.4,
+                            pointBackgroundColor: '#ffff00',
+                            pointBorderColor: '#000000',
+                            pointBorderWidth: 2,
+                            pointRadius: 4,
+                            pointHoverRadius: 6
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: {
+                        padding: {
+                            bottom: 30,
+                            top: 20,
+                            left: 10,
+                            right: 10
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                color: '#ffffff',
+                                font: {
+                                    size: 14
+                                }
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Pension Growth Projection',
+                            color: '#00ff00',
+                            font: {
+                                size: 16
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                padding: 10,
+                                maxRotation: 45,
+                                minRotation: 0,
+                                color: '#ffffff'
+                            },
+                            grid: {
+                                display: false
+                            },
+                            title: {
+                                display: true,
+                                text: 'Years',
+                                color: '#00ff00'
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '£' + value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                                },
+                                padding: 10,
+                                color: '#ffffff'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            title: {
+                                display: true,
+                                text: 'Amount (£)',
+                                color: '#00ff00'
+                            }
+                        }
+                    }
+                }
+            });
         }
 
         // Update the year-by-year breakdown table
