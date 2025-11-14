@@ -1079,34 +1079,37 @@
             const capGeminiCurrent = pensionData.capGemini.values[latestYear] || 0;
             const capGeminiPrevious = pensionData.capGemini.values[previousYear] || 0;
             const capGeminiGrowth = capGeminiPrevious > 0 ? ((capGeminiCurrent - capGeminiPrevious) / capGeminiPrevious * 100) : 0;
+            const capGeminiAnnualReturn = capGeminiCurrent - capGeminiPrevious;
             const capGeminiYears = Object.keys(pensionData.capGemini.values).filter(year => pensionData.capGemini.values[year] > 0).length;
             
             document.getElementById('capgemini-current').textContent = formatCurrency(capGeminiCurrent);
             document.getElementById('capgemini-growth').textContent = `${capGeminiGrowth >= 0 ? '+' : ''}${capGeminiGrowth.toFixed(1)}%`;
             document.getElementById('capgemini-years').textContent = capGeminiYears;
-            document.getElementById('capgemini-annual').textContent = formatCurrency(capGeminiCurrent);
+            document.getElementById('capgemini-annual').textContent = formatCurrency(capGeminiAnnualReturn);
             
             // Royal London
             const royalLondonCurrent = pensionData.royalLondon.values[latestYear] || 0;
             const royalLondonPrevious = pensionData.royalLondon.values[previousYear] || 0;
             const royalLondonGrowth = royalLondonPrevious > 0 ? ((royalLondonCurrent - royalLondonPrevious) / royalLondonPrevious * 100) : 0;
+            const royalLondonAnnualReturn = royalLondonCurrent - royalLondonPrevious;
             const royalLondonYears = Object.keys(pensionData.royalLondon.values).filter(year => pensionData.royalLondon.values[year] > 0).length;
             
             document.getElementById('royallondon-current').textContent = formatCurrency(royalLondonCurrent);
             document.getElementById('royallondon-growth').textContent = `${royalLondonGrowth >= 0 ? '+' : ''}${royalLondonGrowth.toFixed(1)}%`;
             document.getElementById('royallondon-years').textContent = royalLondonYears;
-            document.getElementById('royallondon-annual').textContent = formatCurrency(royalLondonCurrent);
+            document.getElementById('royallondon-annual').textContent = formatCurrency(royalLondonAnnualReturn);
             
             // Baringa
             const baringaCurrent = pensionData.baringa.values[latestYear] || 0;
             const baringaPrevious = pensionData.baringa.values[previousYear] || 0;
             const baringaGrowth = baringaPrevious > 0 ? ((baringaCurrent - baringaPrevious) / baringaPrevious * 100) : 0;
+            const baringaAnnualReturn = baringaCurrent - baringaPrevious;
             const baringaYears = Object.keys(pensionData.baringa.values).filter(year => pensionData.baringa.values[year] > 0).length;
             
             document.getElementById('baringa-current').textContent = formatCurrency(baringaCurrent);
             document.getElementById('baringa-growth').textContent = `${baringaGrowth >= 0 ? '+' : ''}${baringaGrowth.toFixed(1)}%`;
             document.getElementById('baringa-years').textContent = baringaYears;
-            document.getElementById('baringa-annual').textContent = formatCurrency(baringaCurrent);
+            document.getElementById('baringa-annual').textContent = formatCurrency(baringaAnnualReturn);
         }
 
         // Update summary cards - FIXED: Handle empty data
